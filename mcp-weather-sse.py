@@ -9,7 +9,6 @@ import requests
 from typing import Optional, Dict, Any, List
 
 from mcp.server.fastmcp import FastMCP
-from mcp.server import types
 
 load_dotenv()
 
@@ -20,7 +19,7 @@ logging.basicConfig(
 logger = logging.getLogger("mcp-weather-sse")
 
 DEFAULT_HOST = "127.0.0.1"
-DEFAULT_PORT = 3001
+DEFAULT_PORT = 8080
 OPENWEATHER_API_BASE_URL = "https://api.openweathermap.org/data/2.5"
 
 class WeatherSSEServer:
@@ -31,155 +30,117 @@ class WeatherSSEServer:
         self.port = port
         self.host = host
         self.server = FastMCP("Weather SSE Server", version="1.0.0")
-
         self._register_tools()
 
     def _register_tools(self):
-        self.server.tool(
-            name="get_current_weather",
-            parameters={
-                "city": {"type": "string", "description": "City name (e.g., 'London', 'NewYork')"},
-                "units": {"type": "string", "description": "Units of measurement", "enum": ["metric", "imperial"]},
-            },
-            handler=self._handle_current_weather
-        )
+        @self.server.tool(name="get_current_weather", description="Get current weather for a city")
+        async def handle_current_weather(city: str, units: str = "metric") -> Dict[str, Any]:
+            try:
+                url = f"{OPENWEATHER_API_BASE_URL}/weather"
+                response = requests.get(
+                    url,
+                    params={
+                        "q": city,
+                        "units": units,
+                        "appid": self.api_key
+                    }
+                )
+                response.raise_for_status()
+                weather_data = response.json()
 
-        self.server.tool(
-            name="get_weather_forecast",
-            parameters={
-                "city": {"type": "string", "description": "City name (e.g., 'London', 'NewYork')"},
-                "days": {"type": "integer", "description": "Number of days (1-5)", "minimum": 1, "maximum": 5, "default": 3},
-                "units": {"type": "string", "description": "Units of measurement", "enum": ["metric", "imperial"]},
-            },
-            handler=self._handle_weather_forecast
-        )
+                result = self._format_current_weather(weather_data, units)
 
-        self.server.tool(
-            name="get_weather_by_coordinates",
-            parameters={
-                "latitude": {"type": "number", "description": "Latitude of the location"},
-                "longitude": {"type": "number", "description": "Longitude of the location"},
-                "units": {"type": "string", "description": "Units of measurement", "enum": ["metric", "imperial"]},
-            },
-            handler=self._handle_weather_by_coordinates
-        )
-
-    async def _handle_current_weather(self, params: Dict[str, Any]) -> types.ToolResult:
-        city = params.get("city", "")
-        units = params.get("units", "metric")
-
-        try:
-            url = f"{OPENWEATHER_API_BASE_URL}/weather"
-            response = requests.get(
-                url,
-                params={
-                    "q": city,
-                    "units": units,
-                    "appid": self.api_key
+                return {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": json.dumps(result, indent=2)
+                        }
+                    ]
                 }
-            )
-            response.raise_for_status()
-            weather_data = response.json()
-
-            result = self._format_current_weather(weather_data, units)
-
-            return types.ToolResult(
-                content=[
-                    types.TextContent(
-                        type="text",
-                        text=json.dumps(result, indent=2)
-                    )
-                ]
-            )
-        except requests.exceptions.RequestExceptions as e:
-            logger.error(f"Error fetching weather data: {str(e)}")
-            return types.ToolResult(
-                content=[
-                    types.TextContent(
-                        type="text",
-                        text=f"Error fetching weather data: {str(e)}"
-                    )
-                ]
-            )
-        
-    async def _handle_weather_forecast(self, params: Dict[str, Any]) -> types.ToolResult:
-        city = params.get("city", "")
-        days = params.get("days", 3)
-        units = params.get("units", "metric")
-
-        try:
-            url = f"{OPENWEATHER_API_BASE_URL}/forecast"
-            response = requests.get(
-                url,
-                params={
-                    "q": city,
-                    "units": units,
-                    "appid": self.api_key
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Error fetching weather data: {str(e)}")
+                return {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": f"Error fetching weather data: {str(e)}"
+                        }
+                    ]
                 }
-            )
-            response.raise_for_status()
-            forecast_data = response.json()
 
-            result = self._format_forecast(forecast_data, days, units)
+        @self.server.tool(name="get_weather_forecast", description="Get weather forecast for a city")
+        async def handle_weather_forecast(city: str, days: int = 3, units: str = "metric") -> Dict[str, Any]:
+            try:
+                url = f"{OPENWEATHER_API_BASE_URL}/forecast"
+                response = requests.get(
+                    url,
+                    params={
+                        "q": city,
+                        "units": units,
+                        "appid": self.api_key
+                    }
+                )
+                response.raise_for_status()
+                forecast_data = response.json()
 
-            return types.ToolResult(
-                content=[
-                    types.TextContent(
-                        type="text",
-                        text=json.dumps(result, indent=2)
-                    )
-                ]
-            )
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error fetching forecast data: {str(e)}")
-            return types.ToolResult(
-                content=[
-                    types.TextContent(
-                        type="text",
-                        text=f"Error fetching forecast data: {str(e)}"
-                    )
-                ]
-            )
-        
-    async def _handle_weather_by_coordinates(self, params: Dict[str, Any]) -> types.ToolResult:
-        latitude = params.get("latitude", 0.0)
-        longitude = params.get("longitude", 0.0)
-        units = params.get("units", "metric")
+                result = self._format_forecast(forecast_data, days, units)
 
-        try: 
-            url = f"{OPENWEATHER_API_BASE_URL}/weather"
-            response = requests.get(
-                url,
-                params={
-                    "lat": latitude,
-                    "lon": longitude,
-                    "units": units,
-                    "appid": self.api_key
+                return {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": json.dumps(result, indent=2)
+                        }
+                    ]
                 }
-            )
-            response.raise_for_status()
-            weather_data = response.json()
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Error fetching forecast data: {str(e)}")
+                return {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": f"Error fetching forecast data: {str(e)}"
+                        }
+                    ]
+                }
 
-            result = self._format_current_weather(weather_data, units)
+        @self.server.tool(name="get_weather_by_coordinates", description="Get weather for specific coordinates")
+        async def handle_weather_by_coordinates(latitude: float, longitude: float, units: str = "metric") -> Dict[str, Any]:
+            try: 
+                url = f"{OPENWEATHER_API_BASE_URL}/weather"
+                response = requests.get(
+                    url,
+                    params={
+                        "lat": latitude,
+                        "lon": longitude,
+                        "units": units,
+                        "appid": self.api_key
+                    }
+                )
+                response.raise_for_status()
+                weather_data = response.json()
 
-            return types.ToolResult(
-                content=[
-                    types.TextContent(
-                        type="text",
-                        text=json.dumps(result, indent=2)
-                    )
-                ]
-            )
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error fetching weather data by coordinates: {str(e)}")
-            return types.ToolResult(
-                content=[
-                    types.TextContent(
-                        type="text",
-                        text=f"Error fetching weather data by coordinates: {str(e)}"
-                    )   
-                ]
-            )
+                result = self._format_current_weather(weather_data, units)
+
+                return {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": json.dumps(result, indent=2)
+                        }
+                    ]
+                }
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Error fetching weather data by coordinates: {str(e)}")
+                return {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": f"Error fetching weather data by coordinates: {str(e)}"
+                        }   
+                    ]
+                }
 
     def _format_current_weather(self, data: Dict[str, Any], units: str) -> Dict[str, Any]:
         temp_unit = "°C" if units == "metric" else "°F"
@@ -190,8 +151,9 @@ class WeatherSSEServer:
                 "location": {
                     "name": data.get("name", "Unknown"),
                     "country": data.get("sys", {}).get("country", "Unknown"),
-                    "cordinates": {
-                        "latitude"
+                    "coordinates": {
+                        "latitude": data.get("coord", {}).get("lat", 0),
+                        "longitude": data.get("coord", {}).get("lon", 0)
                     }
                 },
                 "current": {
@@ -302,7 +264,7 @@ class WeatherSSEServer:
 
     async def start(self):
         logger.info(f"Starting MCP Weather SSE Server on {self.host}:{self.port}")
-        await self.server.start(host=self.host, port=self.port)
+        await self.server.run_sse_async()
 
 def parse_args():
     parser = argparse.ArgumentParser(description="MCP Weather SSE Server")
