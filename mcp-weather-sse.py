@@ -69,41 +69,41 @@ class WeatherSSEServer:
                     ]
                 }
 
-        # @self.server.tool(name="get_weather_forecast", description="Get weather forecast for a city")
-        # async def handle_weather_forecast(city: str) -> Dict[str, Any]:
-        #     try:
-        #         url = f"{OPENWEATHER_API_BASE_URL}/forecast"
-        #         response = requests.get(
-        #             url,
-        #             params={
-        #                 "q": city,
-        #                 "units": "metric",
-        #                 "appid": self.api_key
-        #             }
-        #         )
-        #         response.raise_for_status()
-        #         forecast_data = response.json()
+        @self.server.tool(name="get_weather_forecast", description="Get weather forecast for a city")
+        async def handle_weather_forecast(city: str) -> Dict[str, Any]:
+            try:
+                url = f"{OPENWEATHER_API_BASE_URL}/forecast"
+                response = requests.get(
+                    url,
+                    params={
+                        "q": city,
+                        "units": "metric",
+                        "appid": self.api_key
+                    }
+                )
+                response.raise_for_status()
+                forecast_data = response.json()
 
-        #         result = self._format_forecast(forecast_data, 3, "metric")
+                result = self._format_forecast(forecast_data, 3, "metric")
 
-        #         return {
-        #             "content": [
-        #                 {
-        #                     "type": "text",
-        #                     "text": json.dumps(result, indent=2)
-        #                 }
-        #             ]
-        #         }
-        #     except requests.exceptions.RequestException as e:
-        #         logger.error(f"Error fetching forecast data: {str(e)}")
-        #         return {
-        #             "content": [
-        #                 {
-        #                     "type": "text",
-        #                     "text": f"Error fetching forecast data: {str(e)}"
-        #                 }
-        #             ]
-        #         }
+                return {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": json.dumps(result, indent=2)
+                        }
+                    ]
+                }
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Error fetching forecast data: {str(e)}")
+                return {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": f"Error fetching forecast data: {str(e)}"
+                        }
+                    ]
+                }
 
         @self.server.tool(name="get_weather_by_coordinates", description="Get weather for specific coordinates")
         async def handle_weather_by_coordinates(latitude: float, longitude: float) -> Dict[str, Any]:
