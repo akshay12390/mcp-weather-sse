@@ -344,7 +344,7 @@ def parse_args():
     parser.add_argument(
         "--api-key",
         type=str,
-        required=True,
+        required=False,
         help="OpenWeatherMap API key"
     )
     return parser.parse_args()
