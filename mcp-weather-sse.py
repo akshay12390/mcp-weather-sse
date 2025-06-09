@@ -33,7 +33,14 @@ class WeatherSSEServer:
         self._register_tools()
 
     def _register_tools(self):
-        @self.server.tool(name="get_current_weather", description="Get current weather for a city")
+        @self.server.tool(name="get_current_weather", description="Get current weather for a city", annotations={
+            "name": "get_current_weather",
+            "title": "Get Current Weather",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+            "openWorldHint": False
+        })
         async def handle_current_weather(city: str) -> Dict[str, Any]:
             try:
                 url = f"{OPENWEATHER_API_BASE_URL}/weather"
@@ -69,7 +76,14 @@ class WeatherSSEServer:
                     ]
                 }
 
-        @self.server.tool(name="get_weather_forecast", description="Get weather forecast for a city")
+        @self.server.tool(name="get_weather_forecast", description="Get weather forecast for a city", annotations={
+            "name": "get_weather_forecast",
+            "title": "Get Weather Forecast",
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": False,
+            "openWorldHint": True
+        })
         async def handle_weather_forecast(city: str) -> Dict[str, Any]:
             try:
                 url = f"{OPENWEATHER_API_BASE_URL}/forecast"
@@ -105,7 +119,14 @@ class WeatherSSEServer:
                     ]
                 }
 
-        @self.server.tool(name="get_weather_by_coordinates", description="Get weather for specific coordinates")
+        @self.server.tool(name="get_weather_by_coordinates", description="Get weather for specific coordinates", annotations={
+            "name": "get_weather_by_coordinates",
+            "title": "Get Weather By Coordinates",
+            "readOnlyHint": False,
+            "destructiveHint": True,
+            "idempotentHint": False,
+            "openWorldHint": True
+        })
         async def handle_weather_by_coordinates(latitude: float, longitude: float) -> Dict[str, Any]:
             try: 
                 url = f"{OPENWEATHER_API_BASE_URL}/weather"

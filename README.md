@@ -27,7 +27,7 @@ A Model Context Protocol (MCP) server that connects to the OpenWeatherMap API th
 
 2. Create a virtual environment and install dependencies:
    ```bash
-   python -m venv venv
+   python3 -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    pip install mcp requests
    ```
@@ -40,7 +40,7 @@ You can start the server with your OpenWeatherMap API key:
 
 ```bash
 # Using command line argument
-python mcp_weather_sse.py --api-key YOUR_API_KEY
+python mcp-weather-sse.py --api-key YOUR_API_KEY
 
 # Customize host and port (default: 127.0.0.1:3001)
 python mcp-weather-sse.py --host 0.0.0.0 --port 8080 --api-key YOUR_API_KEY
@@ -55,32 +55,16 @@ python mcp-weather-sse.py --host 0.0.0.0 --port 8080 --api-key YOUR_API_KEY
 3. Enter the following details:
    - Name: Weather SSE
    - Type: sse
-   - URL: http://127.0.0.1:3001/sse
-
-#### Claude Desktop
-
-1. Open Claude Desktop
-2. Go to Settings → MCP Servers
-3. Add a new server with the following configuration:
-   ```json
-   {
-     "mcpServers": {
-       "weather": {
-         "type": "sse",
-         "url": "http://127.0.0.1:3001/sse"
-       }
-     }
-   }
-   ```
+   - URL: http://127.0.0.1:8000/sse
 
 #### MCP-Inspector
 
 You can use the MCP-Inspector tool to test your server:
 
 ```bash
-npm install -g @anthropic-ai/mcp-inspector
-mcp-inspector http://127.0.0.1:3001/sse
+npx @modelcontextprotocol/inspector
 ```
+Add SSE URL - http://localhost:8000/sse
 
 ## Example Queries
 
